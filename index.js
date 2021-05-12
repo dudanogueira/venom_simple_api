@@ -8,16 +8,15 @@ const WEBHOOK_ADDRESS = 'http://127.0.0.1:8000/connector/VENOM_CONNECTOR/'
 const express = require('express');
 const app = express();
 app.use(express.json());
-const PORT = 8082;
+const PORT = 8092;
 
 
 async function fire(data) {
     return await axios.post(WEBHOOK_ADDRESS, data)
 }
 
-function wh(event, data){
+function wh(event, data) {
     const ts = Date.now();
-    console.log("WH: ",  ts, event, data)
     return fire({
         ts,
         event,
@@ -36,7 +35,7 @@ venom
             wh('OnQRCode', {
                 "base64Qrimg": base64Qrimg,
                 "attempts": attempts,
-                "urlCode":urlCode
+                "urlCode": urlCode
             })
         },
         // statusFind
@@ -58,7 +57,7 @@ venom
             disableSpins: true, // Will disable Spinnies animation, useful for containers (docker) for a better log
             disableWelcome: true, // Will disable the welcoming message which appears in the beginning
             updatesLog: true, // Logs info updates automatically in terminal
-            autoClose: 60000, // Automatically closes the venom-bot only when scanning the QR code (default 60 seconds, if you want to turn it off, assign 0 or false)
+            autoClose: 0, // Automatically closes the venom-bot only when scanning the QR code (default 60 seconds, if you want to turn it off, assign 0 or false)
             createPathFileToken: true, //creates a folder when inserting an object in the client's browser, to work it is necessary to pass the parameters in the function create browserSessionToken
         },
         {}
@@ -69,9 +68,11 @@ venom
     });
 
 function start(client) {
-    client.onMessage(wh('message'))
+    client.onMessage(message => {
+        wh('onMessage', message)
+    })
     // Listen to state changes
-    client.onStateChange(wh('state_change'));
+    client.onStateChange(message => hw('onStateChange', message));
     //   client.onMessage((message) => {
     //     if (message.body === 'Hi' && message.isGroupMsg === false) {
     //       client
@@ -84,9 +85,25 @@ function start(client) {
     //         });
     //     }
     //   });
+    app.post('/sendText', function (req, res) {
+        console.log(req.body);  
+        client
+            .sendText(req.body.args.to, req.body.args.content)
+            .then((result) => {
+                res.send(result);
+            })
+            .catch((erro) => {
+                res.send(erro);
+            });
+    });
+
+    app.listen(PORT, function () {
+        console.log(`\n• Listening on port ${PORT}!`);
+
+    });
+
+
+
 
 }
 
-app.listen(PORT, function () {
-    console.log(`\n• Listening on port ${PORT}!`);
-});
